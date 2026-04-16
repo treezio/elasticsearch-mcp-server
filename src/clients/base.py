@@ -7,11 +7,12 @@ from elasticsearch import Elasticsearch
 import httpx
 from opensearchpy import OpenSearch
 
+
 class SearchClientBase(ABC):
     def __init__(self, config: Dict, engine_type: str):
         """
         Initialize the search client.
-        
+
         Args:
             config: Configuration dictionary with connection parameters
             engine_type: Type of search engine to use ("elasticsearch" or "opensearch")
@@ -19,7 +20,7 @@ class SearchClientBase(ABC):
         self.logger = logging.getLogger()
         self.config = config
         self.engine_type = engine_type
-        
+
         # Extract common configuration
         hosts = config.get("hosts")
         username = config.get("username")
@@ -27,28 +28,31 @@ class SearchClientBase(ABC):
         api_key = config.get("api_key")
         verify_certs = config.get("verify_certs", False)
         timeout = config.get("timeout")
-        
+
         # Disable insecure request warnings if verify_certs is False
         if not verify_certs:
-            warnings.filterwarnings("ignore", message=".*verify_certs=False is insecure.*")
-            warnings.filterwarnings("ignore", message=".*Unverified HTTPS request is being made to host.*")
-            
+            warnings.filterwarnings(
+                "ignore", message=".*verify_certs=False is insecure.*"
+            )
+            warnings.filterwarnings(
+                "ignore", message=".*Unverified HTTPS request is being made to host.*"
+            )
+
             try:
                 import urllib3
+
                 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             except ImportError:
                 pass
-        
+
         # Initialize client based on engine type
         if engine_type == "elasticsearch":
             # Get auth parameters based on elasticsearch package version and authentication method
-            auth_params = self._get_elasticsearch_auth_params(username, password, api_key)
-            
-            es_kwargs = {
-                "hosts": hosts,
-                "verify_certs": verify_certs,
-                **auth_params
-            }
+            auth_params = self._get_elasticsearch_auth_params(
+                username, password, api_key
+            )
+
+            es_kwargs = {"hosts": hosts, "verify_certs": verify_certs, **auth_params}
             if timeout is not None:
                 es_kwargs["request_timeout"] = timeout
             self.client = Elasticsearch(**es_kwargs)
@@ -57,7 +61,7 @@ class SearchClientBase(ABC):
             os_kwargs = {
                 "hosts": hosts,
                 "http_auth": (username, password) if username and password else None,
-                "verify_certs": verify_certs
+                "verify_certs": verify_certs,
             }
             if timeout is not None:
                 os_kwargs["timeout"] = timeout
@@ -77,32 +81,35 @@ class SearchClientBase(ABC):
             timeout=timeout,
         )
 
-    def _get_elasticsearch_auth_params(self, username: Optional[str], password: Optional[str], api_key: Optional[str]) -> Dict:
+    def _get_elasticsearch_auth_params(
+        self, username: Optional[str], password: Optional[str], api_key: Optional[str]
+    ) -> Dict:
         """
         Get authentication parameters for Elasticsearch client based on package version.
-        
+
         Args:
             username: Username for authentication
             password: Password for authentication
             api_key: API key for authentication
-            
+
         Returns:
             Dictionary with appropriate auth parameters for the ES version
         """
         # API key takes precedence over username/password
         if api_key:
             return {"api_key": api_key}
-            
+
         if not username or not password:
             return {}
-            
+
         # Check Elasticsearch package version to determine auth parameter name
         try:
             from elasticsearch import __version__ as es_version
+
             # Convert version tuple to string format
-            version_str = '.'.join(map(str, es_version))
+            version_str = ".".join(map(str, es_version))
             self.logger.info(f"Elasticsearch client version: {version_str}")
-            major_version = es_version[0]    
+            major_version = es_version[0]
             if major_version >= 8:
                 # ES 8+ uses basic_auth
                 return {"basic_auth": (username, password)}
@@ -114,8 +121,49 @@ class SearchClientBase(ABC):
             # If we can't detect version, try basic_auth first (ES 8+ default)
             return {"basic_auth": (username, password)}
 
+    def _process_response(self, response):
+        """
+        Convert Elasticsearch/OpenSearch response to Python primitive types.
+
+        Elasticsearch 8.x returns Response objects (TextApiResponse, ObjectApiResponse)
+        that may cause serialization issues with FastMCP. This method extracts
+        the underlying data.
+
+        Args:
+            response: Raw response from client API call
+
+        Returns:
+            Python dict, list, str, or other primitive type
+        """
+        # If response is already a Python primitive, return as-is
+        if isinstance(response, (dict, list, str, int, float, bool, type(None))):
+            return response
+
+        # Check for Elasticsearch TextApiResponse (cat APIs)
+        if hasattr(response, "text"):
+            return response.text
+
+        # Check for Elasticsearch ObjectApiResponse (JSON APIs)
+        if hasattr(response, "body"):
+            return response.body
+
+        # Fallback: convert to string or return as-is (should be primitive by now)
+        try:
+            return str(response)
+        except:
+            return response
+
+
 class GeneralRestClient:
-    def __init__(self, base_url: Optional[str], username: Optional[str], password: Optional[str], api_key: Optional[str], verify_certs: bool, timeout: Optional[float] = None):
+    def __init__(
+        self,
+        base_url: Optional[str],
+        username: Optional[str],
+        password: Optional[str],
+        api_key: Optional[str],
+        verify_certs: bool,
+        timeout: Optional[float] = None,
+    ):
         self.base_url = base_url.rstrip("/") if base_url else ""
         self.auth = (username, password) if username and password else None
         self.api_key = api_key
@@ -125,11 +173,11 @@ class GeneralRestClient:
     def request(self, method, path, params=None, body=None):
         url = f"{self.base_url}/{path.lstrip('/')}"
         headers = {}
-        
+
         # Add API key to Authorization header if provided
         if self.api_key:
             headers["Authorization"] = f"ApiKey {self.api_key}"
-        
+
         client_kwargs = {"verify": self.verify_certs}
         if self.timeout is not None:
             client_kwargs["timeout"] = self.timeout
@@ -139,8 +187,10 @@ class GeneralRestClient:
                 url=url,
                 params=params,
                 json=body,
-                auth=self.auth if not self.api_key else None,  # Use basic auth only if no API key
-                headers=headers
+                auth=self.auth
+                if not self.api_key
+                else None,  # Use basic auth only if no API key
+                headers=headers,
             )
             resp.raise_for_status()
             ct = resp.headers.get("content-type", "")

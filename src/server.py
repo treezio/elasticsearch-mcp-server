@@ -5,6 +5,14 @@ import argparse
 
 from fastmcp import FastMCP
 
+try:
+    from fastmcp.server.auth import StaticTokenVerifier
+
+    HAS_FASTMCP_AUTH = True
+except ImportError:
+    HAS_FASTMCP_AUTH = False
+    StaticTokenVerifier = None
+
 from src.auth import BearerAuthMiddleware
 from src.clients import create_search_client
 from src.tools.alias import AliasTools
@@ -16,6 +24,7 @@ from src.tools.general import GeneralTools
 from src.tools.index import IndexTools
 from src.tools.register import ToolsRegister
 from src.version import __version__ as VERSION
+
 
 class SearchMCPServer:
     def __init__(self, engine_type, api_key: str | None = None):
@@ -30,19 +39,32 @@ class SearchMCPServer:
         # Set engine type
         self.engine_type = engine_type
         self.name = f"{self.engine_type}-mcp-server"
-        self.mcp = FastMCP(self.name)
 
         # Configure logging
         logging.basicConfig(
             level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
         self.logger = logging.getLogger(__name__)
         self.logger.info(f"Initializing {self.name}, Version: {VERSION}")
 
-        # Setup authentication middleware if API key is provided
+        # Setup authentication if API key is provided
+        auth = None
         if api_key:
-            self._setup_auth(api_key)
+            if HAS_FASTMCP_AUTH:
+                # Use FastMCP built-in authentication
+                auth = self._create_fastmcp_auth(api_key)
+                self.logger.info("Using FastMCP built-in authentication")
+            else:
+                self.logger.info("FastMCP auth not available, using middleware")
+
+        # Create MCP server with or without auth
+        self.mcp = FastMCP(self.name, auth=auth)
+
+        if api_key:
+            if not HAS_FASTMCP_AUTH:
+                # Add middleware for older FastMCP versions
+                self._setup_middleware_auth(api_key)
             self.logger.info("Bearer token authentication enabled for MCP server")
         else:
             self.logger.warning(
@@ -57,8 +79,27 @@ class SearchMCPServer:
         # Initialize tools
         self._register_tools()
 
-    def _setup_auth(self, api_key: str):
-        """Setup authentication middleware.
+    def _create_fastmcp_auth(self, api_key: str):
+        """Create FastMCP built-in authentication provider.
+
+        Args:
+            api_key: The API key for Bearer token authentication.
+
+        Returns:
+            StaticTokenVerifier instance
+        """
+        # Create a token dictionary with the API key as the token
+        # The metadata should include client_id and scopes
+        tokens = {
+            api_key: {
+                "client_id": "mcp_client",
+                "scopes": [],
+            }
+        }
+        return StaticTokenVerifier(tokens=tokens)
+
+    def _setup_middleware_auth(self, api_key: str):
+        """Setup authentication middleware (fallback for older FastMCP versions).
 
         Args:
             api_key: The API key for Bearer token authentication.
@@ -109,11 +150,14 @@ def run_search_server(engine_type, transport, host, port, path):
     server = SearchMCPServer(engine_type=engine_type, api_key=api_key)
 
     if transport in ["streamable-http", "sse"]:
-        server.logger.info(f"Starting {server.name} with {transport} transport on {host}:{port}{path}")
+        server.logger.info(
+            f"Starting {server.name} with {transport} transport on {host}:{port}{path}"
+        )
         server.mcp.run(transport=transport, host=host, port=port, path=path)
     else:
         server.logger.info(f"Starting {server.name} with {transport} transport")
         server.mcp.run(transport=transport)
+
 
 def parse_server_args():
     """Parse command line arguments for the MCP server.
@@ -123,25 +167,29 @@ def parse_server_args():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--transport", "-t",
+        "--transport",
+        "-t",
         default="stdio",
         choices=["stdio", "streamable-http", "sse"],
-        help="Transport protocol to use (default: stdio)"
+        help="Transport protocol to use (default: stdio)",
     )
     parser.add_argument(
-        "--host", "-H",
+        "--host",
+        "-H",
         default="127.0.0.1",
-        help="Host to bind to when using HTTP transports (default: 127.0.0.1)"
+        help="Host to bind to when using HTTP transports (default: 127.0.0.1)",
     )
     parser.add_argument(
-        "--port", "-p",
+        "--port",
+        "-p",
         type=int,
         default=8000,
-        help="Port to bind to when using HTTP transports (default: 8000)"
+        help="Port to bind to when using HTTP transports (default: 8000)",
     )
     parser.add_argument(
-        "--path", "-P",
-        help="URL path prefix for HTTP transports (default: /mcp for streamable-http, /sse for sse)"
+        "--path",
+        "-P",
+        help="URL path prefix for HTTP transports (default: /mcp for streamable-http, /sse for sse)",
     )
 
     args = parser.parse_args()
@@ -155,6 +203,7 @@ def parse_server_args():
 
     return args
 
+
 def elasticsearch_mcp_server():
     """Entry point for Elasticsearch MCP server."""
     args = parse_server_args()
@@ -165,8 +214,9 @@ def elasticsearch_mcp_server():
         transport=args.transport,
         host=args.host,
         port=args.port,
-        path=args.path
+        path=args.path,
     )
+
 
 def opensearch_mcp_server():
     """Entry point for OpenSearch MCP server."""
@@ -178,13 +228,19 @@ def opensearch_mcp_server():
         transport=args.transport,
         host=args.host,
         port=args.port,
-        path=args.path
+        path=args.path,
     )
+
 
 if __name__ == "__main__":
     # Require elasticsearch-mcp-server or opensearch-mcp-server as the first argument
-    if len(sys.argv) <= 1 or sys.argv[1] not in ["elasticsearch-mcp-server", "opensearch-mcp-server"]:
-        print("Error: First argument must be 'elasticsearch-mcp-server' or 'opensearch-mcp-server'")
+    if len(sys.argv) <= 1 or sys.argv[1] not in [
+        "elasticsearch-mcp-server",
+        "opensearch-mcp-server",
+    ]:
+        print(
+            "Error: First argument must be 'elasticsearch-mcp-server' or 'opensearch-mcp-server'"
+        )
         sys.exit(1)
 
     # Determine engine type based on the first argument
@@ -204,5 +260,5 @@ if __name__ == "__main__":
         transport=args.transport,
         host=args.host,
         port=args.port,
-        path=args.path
+        path=args.path,
     )

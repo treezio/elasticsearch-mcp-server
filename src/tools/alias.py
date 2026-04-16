@@ -2,12 +2,14 @@ from typing import Dict, List
 
 from fastmcp import FastMCP
 
+
 class AliasTools:
     def __init__(self, search_client):
         self.search_client = search_client
+
     def register_tools(self, mcp: FastMCP):
         @mcp.tool()
-        def list_aliases() -> List[Dict]:
+        def list_aliases() -> str:
             """List all aliases."""
             return self.search_client.list_aliases()
 
@@ -43,4 +45,3 @@ class AliasTools:
                 name: Name of the alias
             """
             return self.search_client.delete_alias(index=index, name=name)
-        
