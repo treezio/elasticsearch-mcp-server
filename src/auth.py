@@ -26,13 +26,13 @@ def _get_bearer_token() -> Optional[str]:
     """
     try:
         headers = get_http_headers()
-        logger.info(f"Got headers in _get_bearer_token: {headers}")
+        logger.debug("Got headers in _get_bearer_token")
         if not headers:
             logger.warning("No headers available")
             return None
 
         auth_header = headers.get("authorization") or headers.get("Authorization")
-        logger.info(f"Auth header value: {auth_header}")
+        logger.debug(f"Auth header present: {bool(auth_header)}")
         if not auth_header:
             logger.warning("No Authorization header found")
             return None
@@ -45,7 +45,7 @@ def _get_bearer_token() -> Optional[str]:
             )
             return None
 
-        logger.info(f"Extracted Bearer token (first 5 chars): {token[:5]}...")
+        logger.debug("Extracted Bearer token")
         return token.strip()
     except Exception as e:
         logger.error(f"Error getting headers: {e}")
@@ -71,6 +71,9 @@ class BearerAuthMiddleware(Middleware):
         Args:
             api_key: The API key to validate against. If None, reads from MCP_API_KEY env var.
         """
+        if api_key is None:
+            api_key = os.environ.get("MCP_API_KEY")
+
         logger.info(
             f"BearerAuthMiddleware initialized with API key: {api_key is not None}"
         )
@@ -104,12 +107,12 @@ class BearerAuthMiddleware(Middleware):
         Raises:
             ToolError: If authentication fails
         """
-        logger.info(
+        logger.debug(
             f"Starting authentication check. API key enabled: {self.is_enabled}"
         )
 
         if not self.is_enabled:
-            logger.warning(
+            logger.debug(
                 "Authentication is disabled (no API key configured). Allowing request."
             )
             return
@@ -130,7 +133,7 @@ class BearerAuthMiddleware(Middleware):
                 "Please check your MCP_API_KEY configuration."
             )
 
-        logger.info("Authentication successful")
+        logger.debug("Authentication successful")
 
     async def on_call_tool(self, context: MiddlewareContext, call_next):
         """Authenticate before calling a tool."""
@@ -164,17 +167,17 @@ class BearerAuthMiddleware(Middleware):
 
     async def on_request(self, context: MiddlewareContext, call_next):
         """Authenticate on every request."""
-        logger.info(f"BEARER_AUTH_ON_REQUEST triggered. Context type: {type(context)}")
+        logger.debug(f"BEARER_AUTH_ON_REQUEST triggered. Context type: {type(context)}")
         self._check_auth()
         return await call_next(context)
 
     async def on_initialize(self, context: MiddlewareContext, call_next):
         """Authenticate before initializing SSE connection."""
-        logger.info(
+        logger.debug(
             f"BEARER_AUTH_ON_INITIALIZE triggered. Context type: {type(context)}"
         )
-        logger.info(f"Context dir: {dir(context)}")
+        logger.debug(f"Context dir: {dir(context)}")
         if hasattr(context, "__dict__"):
-            logger.info(f"Context dict keys: {context.__dict__.keys()}")
+            logger.debug(f"Context dict keys: {context.__dict__.keys()}")
         self._check_auth()
         return await call_next(context)

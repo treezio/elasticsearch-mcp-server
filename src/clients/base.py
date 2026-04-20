@@ -150,7 +150,10 @@ class SearchClientBase(ABC):
         # Fallback: convert to string or return as-is (should be primitive by now)
         try:
             return str(response)
-        except:
+        except Exception:
+            self.logger.warning(
+                f"Failed to convert response to string: {type(response)}"
+            )
             return response
 
 

@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict
 
 from fastmcp import FastMCP
 
