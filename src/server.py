@@ -4,16 +4,8 @@ import sys
 import argparse
 
 from fastmcp import FastMCP
+from fastmcp.server.auth import StaticTokenVerifier
 
-try:
-    from fastmcp.server.auth import StaticTokenVerifier
-
-    HAS_FASTMCP_AUTH = True
-except ImportError:
-    HAS_FASTMCP_AUTH = False
-    StaticTokenVerifier = None
-
-from src.auth import BearerAuthMiddleware
 from src.clients import create_search_client
 from src.tools.alias import AliasTools
 from src.tools.analyzer import AnalyzerTools
@@ -51,27 +43,17 @@ class SearchMCPServer:
         # Setup authentication if API key is provided
         auth = None
         if api_key:
-            if HAS_FASTMCP_AUTH:
-                # Use FastMCP built-in authentication
-                auth = self._create_fastmcp_auth(api_key)
-                self.logger.info("Using FastMCP built-in authentication")
-            else:
-                self.logger.info("FastMCP auth not available, using middleware")
-
-        # Create MCP server with or without auth
-        self.mcp = FastMCP(self.name, auth=auth)
-
-        if api_key:
-            if not HAS_FASTMCP_AUTH:
-                # Add middleware for older FastMCP versions
-                self._setup_middleware_auth(api_key)
-            self.logger.info("Bearer token authentication enabled for MCP server")
+            # Use FastMCP built-in authentication
+            auth = self._create_fastmcp_auth(api_key)
+            self.logger.info("Using FastMCP built-in authentication")
         else:
             self.logger.warning(
                 "MCP_API_KEY not set - authentication is DISABLED. "
                 "Anyone can access this MCP server without authentication. "
                 "Set MCP_API_KEY environment variable to enable authentication."
             )
+        # Create MCP server with or without auth
+        self.mcp = FastMCP(self.name, auth=auth)
 
         # Create the corresponding search client
         self.search_client = create_search_client(self.engine_type)
@@ -97,16 +79,6 @@ class SearchMCPServer:
             }
         }
         return StaticTokenVerifier(tokens=tokens)
-
-    def _setup_middleware_auth(self, api_key: str):
-        """Setup authentication middleware (fallback for older FastMCP versions).
-
-        Args:
-            api_key: The API key for Bearer token authentication.
-        """
-        auth_middleware = BearerAuthMiddleware(api_key=api_key)
-        self.mcp.add_middleware(auth_middleware)
-        self.logger.info("Authentication middleware added - Bearer token required")
 
     def _register_tools(self):
         """Register all MCP tools."""
