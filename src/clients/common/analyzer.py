@@ -47,6 +47,7 @@ class AnalyzerClient(SearchClientBase):
             body["attributes"] = attributes
 
         if index:
-            return self.client.indices.analyze(index=index, body=body)
+            response = self.client.indices.analyze(index=index, body=body)
         else:
-            return self.client.indices.analyze(body=body)
+            response = self.client.indices.analyze(body=body)
+        return self._process_response(response)
