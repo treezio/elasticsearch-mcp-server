@@ -54,7 +54,6 @@ server:
 # ---------------------------------------------------------------------------
 elasticsearch:
   hosts: "https://elasticsearch:9200"
-  username: ""
   verifyCerts: "false"
   requestTimeout: ""
 
@@ -63,7 +62,6 @@ elasticsearch:
 # ---------------------------------------------------------------------------
 opensearch:
   hosts: "https://opensearch:9200"
-  username: ""
   verifyCerts: "false"
   requestTimeout: ""
 
@@ -81,24 +79,33 @@ risk:
 # Secret management
 #
 # Option A — provide credentials here (chart creates a Secret):
-#   auth.credentials.elasticsearchPassword / elasticsearchApiKey / mcpApiKey
+#   Set the relevant fields under auth.credentials and leave auth.existingSecret empty.
 #
-# Option B — point to an existing Secret (e.g. created by External Secrets):
+# Option B — point to an existing Secret (e.g. created by External Secrets Operator):
 #   auth.existingSecret: my-secret-name
-#   auth.existingSecretKeys.*: key names inside that Secret
+#   Optionally override auth.existingSecretKeys.* if your key names differ.
 # ---------------------------------------------------------------------------
 auth:
   # Name of a pre-existing Secret. When set, no Secret is created by this chart.
   existingSecret: ""
   # Key names inside the Secret (applies to both chart-created and existing secrets)
   existingSecretKeys:
+    elasticsearchUsername: "elasticsearch-username"
     elasticsearchPassword: "elasticsearch-password"
     elasticsearchApiKey: "elasticsearch-api-key"
+    opensearchUsername: "opensearch-username"
+    opensearchPassword: "opensearch-password"
     mcpApiKey: "mcp-api-key"
-  # Credentials — only used when existingSecret is empty
+  # Credentials — only used when existingSecret is empty.
+  # Populate only the fields relevant to your engine type and auth method.
   credentials:
+    # Elasticsearch: username/password or API key (API key takes precedence)
+    elasticsearchUsername: ""
     elasticsearchPassword: ""
     elasticsearchApiKey: ""
+    # OpenSearch: username/password
+    opensearchUsername: ""
+    opensearchPassword: ""
     # MCP Bearer token. Required for HTTP transports in production.
     mcpApiKey: ""
 

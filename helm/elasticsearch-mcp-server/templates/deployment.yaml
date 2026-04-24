@@ -55,16 +55,22 @@ spec:
             # OpenSearch connection
             - name: OPENSEARCH_HOSTS
               value: {{ .Values.opensearch.hosts | quote }}
-            {{- if .Values.opensearch.username }}
+            {{- if or .Values.auth.existingSecret .Values.auth.credentials.opensearchUsername }}
             - name: OPENSEARCH_USERNAME
-              value: {{ .Values.opensearch.username | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "elasticsearch-mcp-server.secretName" . }}
+                  key: {{ .Values.auth.existingSecretKeys.opensearchUsername }}
+                  optional: true
             {{- end }}
+            {{- if or .Values.auth.existingSecret .Values.auth.credentials.opensearchPassword }}
             - name: OPENSEARCH_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "elasticsearch-mcp-server.secretName" . }}
-                  key: {{ .Values.auth.existingSecretKeys.elasticsearchPassword }}
+                  key: {{ .Values.auth.existingSecretKeys.opensearchPassword }}
                   optional: true
+            {{- end }}
             - name: VERIFY_CERTS
               value: {{ .Values.opensearch.verifyCerts | quote }}
             {{- if .Values.opensearch.requestTimeout }}
@@ -76,22 +82,30 @@ spec:
             # Elasticsearch connection
             - name: ELASTICSEARCH_HOSTS
               value: {{ .Values.elasticsearch.hosts | quote }}
-            {{- if .Values.elasticsearch.username }}
+            {{- if or .Values.auth.existingSecret .Values.auth.credentials.elasticsearchUsername }}
             - name: ELASTICSEARCH_USERNAME
-              value: {{ .Values.elasticsearch.username | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "elasticsearch-mcp-server.secretName" . }}
+                  key: {{ .Values.auth.existingSecretKeys.elasticsearchUsername }}
+                  optional: true
             {{- end }}
+            {{- if or .Values.auth.existingSecret .Values.auth.credentials.elasticsearchPassword }}
             - name: ELASTICSEARCH_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "elasticsearch-mcp-server.secretName" . }}
                   key: {{ .Values.auth.existingSecretKeys.elasticsearchPassword }}
                   optional: true
+            {{- end }}
+            {{- if or .Values.auth.existingSecret .Values.auth.credentials.elasticsearchApiKey }}
             - name: ELASTICSEARCH_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "elasticsearch-mcp-server.secretName" . }}
                   key: {{ .Values.auth.existingSecretKeys.elasticsearchApiKey }}
                   optional: true
+            {{- end }}
             - name: VERIFY_CERTS
               value: {{ .Values.elasticsearch.verifyCerts | quote }}
             {{- if .Values.elasticsearch.requestTimeout }}
@@ -101,12 +115,14 @@ spec:
             {{- end }}
 
             # MCP server Bearer token authentication
+            {{- if or .Values.auth.existingSecret .Values.auth.credentials.mcpApiKey }}
             - name: MCP_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "elasticsearch-mcp-server.secretName" . }}
                   key: {{ .Values.auth.existingSecretKeys.mcpApiKey }}
                   optional: true
+            {{- end }}
 
             # Risk / write-operation control
             - name: DISABLE_HIGH_RISK_OPERATIONS
