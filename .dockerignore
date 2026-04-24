@@ -31,10 +31,10 @@ docker-compose*.yml
 # Helm
 helm/
 
-# Documentation
-README.md
+# Documentation (README.md is needed by hatchling to build the package)
 CONTRIBUTING.md
 *.md
+!README.md
 
 # Clients and examples
 mcp_client/

@@ -18,10 +18,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Copy source and install the project itself
 COPY src/ /app/src/
-COPY pyproject.toml /app/
+COPY pyproject.toml uv.lock LICENSE README.md /app/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+    uv sync --frozen --no-dev --no-editable
 
 # ---------------------------------------------------------------------------
 # Runtime: minimal image without uv
