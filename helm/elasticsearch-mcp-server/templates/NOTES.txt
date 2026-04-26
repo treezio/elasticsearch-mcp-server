@@ -36,6 +36,5 @@ MCP endpoint (port-forward):
 {{- if not .Values.auth.existingSecret }}
 
 ⚠️  WARNING: MCP_API_KEY is not set. The MCP server is accessible WITHOUT authentication.
-   Set auth.credentials.mcpApiKey or reference an existing secret via auth.existingSecret.
 {{- end }}
 {{- end }}
