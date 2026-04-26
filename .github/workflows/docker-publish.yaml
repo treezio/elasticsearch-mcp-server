@@ -33,4 +33,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/cr7258/elasticsearch-mcp-server:${{ env.RELEASE_TAG }}
+          tags: ghcr.io/treezio/elasticsearch-mcp-server:${{ env.RELEASE_TAG }}
