@@ -98,11 +98,20 @@ class SearchMCPServer:
         @self.mcp.custom_route("/readyz", methods=["GET"], include_in_schema=False)
         async def readiness(request: Request) -> Response:
             try:
-                reachable = await asyncio.to_thread(self.search_client.client.ping)
+                reachable = await asyncio.wait_for(
+                    asyncio.to_thread(self.search_client.client.ping),
+                    timeout=5.0,
+                )
+            except asyncio.TimeoutError:
+                self.logger.warning("Readiness check timed out")
+                return JSONResponse(
+                    {"status": "timeout", "search_engine": self.engine_type},
+                    status_code=503,
+                )
             except Exception as exc:
                 self.logger.warning("Readiness check failed: %s", exc)
                 return JSONResponse(
-                    {"status": "error", "search_engine": self.engine_type, "detail": str(exc)},
+                    {"status": "error", "search_engine": self.engine_type},
                     status_code=503,
                 )
             if reachable:
