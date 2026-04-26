@@ -73,4 +73,4 @@ jobs:
         run: helm package helm/elasticsearch-mcp-server
 
       - name: Push chart to OCI registry
-        run: helm push elasticsearch-mcp-server-*.tgz oci://ghcr.io/charts/cr7258
+        run: helm push elasticsearch-mcp-server-*.tgz oci://ghcr.io/cr7258/charts
