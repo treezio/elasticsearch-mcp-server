@@ -358,7 +358,7 @@ uv run src/server.py elasticsearch-mcp-server
 
 ## Kubernetes Deployment
 
-The Docker image is published to `ghcr.io/cr7258/elasticsearch-mcp-server` and the Helm chart is available as an OCI artifact at `oci://ghcr.io/charts/cr7258/elasticsearch-mcp-server` which is available in `oci://ghcr.io/charts/cr7258/elasticsearch-mcp-server` repository.
+The Docker image is published to `ghcr.io/cr7258/elasticsearch-mcp-server` and the Helm chart is available as an OCI artifact at `oci://ghcr.io/cr7258/charts/elasticsearch-mcp-server` repository.
 
 For full installation instructions, configuration reference, and usage examples see the **[Helm chart README](helm/elasticsearch-mcp-server/README.md)**.
 

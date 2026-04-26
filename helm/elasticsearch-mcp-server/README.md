@@ -23,13 +23,13 @@ The image runs as a non-root user with a read-only root filesystem and exposes t
 The Helm chart is published as an OCI artifact to the GitHub Container Registry:
 
 ```
-oci://ghcr.io/charts/cr7258/elasticsearch-mcp-server
+oci://ghcr.io/cr7258/charts/elasticsearch-mcp-server
 ```
 
 **Elasticsearch — username/password:**
 
 ```bash
-helm install elasticsearch-mcp oci://ghcr.io/charts/cr7258/elasticsearch-mcp-server \
+helm install elasticsearch-mcp oci://ghcr.io/cr7258/charts/elasticsearch-mcp-server \
   --set elasticsearch.hosts="https://your-elasticsearch:9200" \
   --set auth.credentials.elasticsearchUsername=elastic \
   --set auth.credentials.elasticsearchPassword=changeme \
@@ -39,7 +39,7 @@ helm install elasticsearch-mcp oci://ghcr.io/charts/cr7258/elasticsearch-mcp-ser
 **Elasticsearch — API key (recommended):**
 
 ```bash
-helm install elasticsearch-mcp oci://ghcr.io/charts/cr7258/elasticsearch-mcp-server \
+helm install elasticsearch-mcp oci://ghcr.io/cr7258/charts/elasticsearch-mcp-server \
   --set elasticsearch.hosts="https://your-elasticsearch:9200" \
   --set auth.credentials.elasticsearchApiKey=your-api-key \
   --set auth.credentials.mcpApiKey=your-secure-mcp-token
@@ -48,7 +48,7 @@ helm install elasticsearch-mcp oci://ghcr.io/charts/cr7258/elasticsearch-mcp-ser
 **OpenSearch:**
 
 ```bash
-helm install opensearch-mcp oci://ghcr.io/charts/cr7258/elasticsearch-mcp-server \
+helm install opensearch-mcp oci://ghcr.io/cr7258/charts/elasticsearch-mcp-server \
   --set server.engineType=opensearch \
   --set opensearch.hosts="https://your-opensearch:9200" \
   --set auth.credentials.opensearchUsername=admin \
