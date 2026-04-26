@@ -12,4 +12,5 @@ keywords:
   - llm
 home: https://github.com/cr7258/elasticsearch-mcp-server
 maintainers:
-  - name: elasticsearch-mcp-server
+  - name: treezio
+    url: https://github.com/treezio
