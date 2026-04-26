@@ -1,3 +1,6 @@
+{{- if eq .Values.server.transport "stdio" }}
+{{- fail "server.transport 'stdio' is not supported in Kubernetes. Use 'streamable-http' or 'sse'." }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:

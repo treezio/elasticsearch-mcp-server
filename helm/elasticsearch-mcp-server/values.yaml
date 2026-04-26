@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: elasticsearch-mcp-server
+  repository: ghcr.io/cr7258/elasticsearch-mcp-server
   pullPolicy: IfNotPresent
   # Defaults to .Chart.AppVersion when empty
   tag: ""

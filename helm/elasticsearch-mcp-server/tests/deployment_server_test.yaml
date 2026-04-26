@@ -5,6 +5,13 @@ release:
   name: test
 tests:
 
+  - it: should fail rendering when transport is stdio
+    set:
+      server.transport: stdio
+    asserts:
+      - failedTemplate:
+          errorMessage: "server.transport 'stdio' is not supported in Kubernetes. Use 'streamable-http' or 'sse'."
+
   - it: should use streamable-http transport and /mcp path by default
     asserts:
       - equal:
