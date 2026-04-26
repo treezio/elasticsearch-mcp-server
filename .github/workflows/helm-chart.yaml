@@ -33,7 +33,7 @@ jobs:
         uses: helm/chart-testing-action@v2
 
       - name: Install helm-unittest plugin
-        run: helm plugin install https://github.com/helm-unittest/helm-unittest --verify=false
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest --version v0.3.2 --verify=false
 
       - name: Detect changed charts
         id: list-changed
